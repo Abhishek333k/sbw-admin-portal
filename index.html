@@ -104,30 +104,43 @@
 
     <main class="flex-grow overflow-y-auto p-8 relative bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
         
-        <div id="login-overlay" class="modal-overlay" style="z-index: 999;">
-    <div class="glass-card p-8 w-80 text-center border-t-4 border-blue-600">
-        <h2 class="text-xl font-bold text-white mb-6">SECURE ACCESS</h2>
+       <div id="login-overlay" class="modal-overlay" style="z-index: 999;">
+    <div class="glass-card p-8 w-80 text-center border-t-4 border-blue-600 shadow-2xl">
+        <h2 class="text-xl font-bold text-white mb-4">SECURE ACCESS</h2>
         
-        <div class="text-left mb-4">
-            <label class="text-[10px] text-blue-400 font-bold uppercase block mb-1">ID Verification</label>
-            <input type="text" id="adminId" class="cyber-input font-mono font-bold text-sm" placeholder="Email or 10-Digit Mobile" oninput="resetAuthFlow()">
+        <div class="flex border-b border-slate-700 mb-6">
+            <button onclick="switchLoginTab('email')" id="tab-email" class="flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors">Email</button>
+            <button onclick="switchLoginTab('mobile')" id="tab-mobile" class="flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors">Mobile OTP</button>
         </div>
 
-        <div id="password-group" class="hidden text-left mb-6 animate-fade-in">
-            <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Passcode</label>
-            <input type="password" id="adminPassword" class="cyber-input font-mono font-bold" placeholder="••••••••">
+        <div id="panel-email" class="animate-fade-in block">
+            <div class="text-left mb-4">
+                <label class="text-[10px] text-blue-400 font-bold uppercase block mb-1">Admin Email</label>
+                <input type="email" id="authEmail" class="cyber-input font-mono text-sm" placeholder="ceo@sagarborewells.com">
+            </div>
+            <div class="text-left mb-6">
+                <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Passcode</label>
+                <input type="password" id="authPassword" class="cyber-input font-mono font-bold" placeholder="••••••••">
+            </div>
+            <button id="btnLoginEmail" onclick="loginWithEmail()" class="w-full btn-pro btn-primary">Access Vault</button>
         </div>
 
-        <div id="otp-group" class="hidden text-left mb-6 animate-fade-in">
-            <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Security Code</label>
-            <input type="tel" id="adminOtp" class="cyber-input text-center tracking-[0.5em] font-bold text-lg" placeholder="••••••" maxlength="6">
+        <div id="panel-mobile" class="hidden animate-fade-in">
+            <div class="text-left mb-4">
+                <label class="text-[10px] text-blue-400 font-bold uppercase block mb-1">Admin Mobile</label>
+                <div class="flex bg-slate-900 border border-slate-700 rounded overflow-hidden focus-within:border-blue-500 transition-colors">
+                    <span class="px-3 py-2 text-slate-500 border-r border-slate-700 font-mono text-xs flex items-center bg-slate-800">+91</span>
+                    <input type="tel" id="authMobile" class="w-full bg-transparent px-3 py-2 text-white outline-none font-mono font-bold text-sm" placeholder="9876543210" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                </div>
+            </div>
+            <div id="otp-group" class="hidden text-left mb-6">
+                <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Security Code</label>
+                <input type="tel" id="authOtp" class="cyber-input text-center tracking-[0.5em] font-bold text-lg" placeholder="••••••" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6)">
+            </div>
+            <div id="recaptcha-container" class="mb-4 flex justify-center"></div>
+            <button id="btnSendOtp" onclick="triggerOTP()" class="w-full btn-pro btn-primary">Send Secure Code</button>
+            <button id="btnVerifyOtp" onclick="verifyAdminOTP()" class="hidden w-full btn-pro bg-emerald-600 hover:bg-emerald-500 text-white">Unlock System</button>
         </div>
-
-        <div id="recaptcha-container" class="mb-4 flex justify-center"></div>
-
-        <button id="btnNext" onclick="determineAuthMethod()" class="w-full btn-pro btn-primary">Continue</button>
-        <button id="btnLoginEmail" onclick="loginWithEmail()" class="hidden w-full btn-pro bg-emerald-600 hover:bg-emerald-500 text-white">Access Vault</button>
-        <button id="btnVerifyOtp" onclick="verifyAdminOTP()" class="hidden w-full btn-pro bg-emerald-600 hover:bg-emerald-500 text-white">Unlock System</button>
     </div>
 </div>
 
@@ -294,40 +307,33 @@
             }).showToast();
         }
 
-        // --- UNIFIED AUTH & SETUP ---
+    // --- EXPLICIT AUTHENTICATION LOGIC ---
 
-// Critical Architectural Update: Dynamic UI Reset
-function resetAuthFlow() {
-    document.getElementById('password-group').classList.add('hidden');
-    document.getElementById('otp-group').classList.add('hidden');
-    document.getElementById('btnNext').classList.remove('hidden');
-    document.getElementById('btnLoginEmail').classList.add('hidden');
-    document.getElementById('btnVerifyOtp').classList.add('hidden');
-}
+function switchLoginTab(mode) {
+    const tEmail = document.getElementById('tab-email');
+    const tMobile = document.getElementById('tab-mobile');
+    const pEmail = document.getElementById('panel-email');
+    const pMobile = document.getElementById('panel-mobile');
 
-// Auto-detect login method based on input
-function determineAuthMethod() {
-    const input = document.getElementById('adminId').value.trim();
-    
-    if (input.includes('@')) {
-        // Email Flow detected
-        document.getElementById('btnNext').classList.add('hidden');
-        document.getElementById('password-group').classList.remove('hidden');
-        document.getElementById('btnLoginEmail').classList.remove('hidden');
-    } else if (/^\d{10}$/.test(input)) {
-        // 10-Digit Mobile Flow detected
-        document.getElementById('btnNext').classList.add('hidden');
-        sendAdminOTP(input);
+    if (mode === 'email') {
+        tEmail.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors";
+        tMobile.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors";
+        pEmail.classList.remove('hidden');
+        pMobile.classList.add('hidden');
     } else {
-        notify("INVALID ID FORMAT. Use Email or 10-Digit Mobile.", "error");
+        tMobile.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors";
+        tEmail.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors";
+        pMobile.classList.remove('hidden');
+        pEmail.classList.add('hidden');
     }
 }
 
-// Standard Email Login
 function loginWithEmail() {
-    const email = document.getElementById('adminId').value.trim();
-    const pass = document.getElementById('adminPassword').value;
+    const email = document.getElementById('authEmail').value.trim();
+    const pass = document.getElementById('authPassword').value;
     const btn = document.getElementById('btnLoginEmail');
+    
+    if (!email || !pass) return notify("ENTER CREDENTIALS", "error");
     
     btn.innerText = "AUTHENTICATING...";
 
@@ -338,12 +344,14 @@ function loginWithEmail() {
     });
 }
 
-// Advanced OTP Login with reCAPTCHA
-function sendAdminOTP(phone) {
-    const btn = document.getElementById('btnVerifyOtp');
-    document.getElementById('otp-group').classList.remove('hidden');
-    document.getElementById('btnVerifyOtp').classList.remove('hidden');
-    btn.innerText = "TRANSMITTING...";
+function triggerOTP() {
+    const phone = document.getElementById('authMobile').value.trim();
+    
+    // Hard validation before talking to Firebase
+    if(phone.length !== 10) return notify("INVALID MOBILE. EXACTLY 10 DIGITS REQUIRED.", "error");
+
+    const btnSend = document.getElementById('btnSendOtp');
+    btnSend.innerText = "TRANSMITTING...";
     
     if(!window.recaptchaVerifier) {
         window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {'size': 'invisible'});
@@ -351,25 +359,30 @@ function sendAdminOTP(phone) {
     
     auth.signInWithPhoneNumber('+91' + phone, window.recaptchaVerifier).then(cr => {
         window.confirmationResult = cr; 
-        btn.innerText = "Unlock System"; 
+        btnSend.classList.add('hidden');
+        document.getElementById('otp-group').classList.remove('hidden');
+        document.getElementById('btnVerifyOtp').classList.remove('hidden');
         notify("OTP Dispatched to " + phone);
     }).catch(e => {
         console.error(e);
         notify("TRANSMISSION FAILED: " + e.message, "error");
-        resetAuthFlow();
+        btnSend.innerText = "Send Secure Code";
     });
 }
 
 function verifyAdminOTP() { 
-    const code = document.getElementById('adminOtp').value;
+    const code = document.getElementById('authOtp').value;
+    if(code.length !== 6) return notify("INVALID OTP LENGTH", "error");
+
     const btn = document.getElementById('btnVerifyOtp');
     btn.innerText = "VERIFYING...";
     
     window.confirmationResult.confirm(code).catch((e) => {
-        notify("INVALID CODE", "error");
+        notify("INVALID SECURITY CODE", "error");
         btn.innerText = "Unlock System";
     }); 
 }
+                
 
 // 🟢 THE VAULT DOOR: Firestore Security Validation
 auth.onAuthStateChanged(user => {
