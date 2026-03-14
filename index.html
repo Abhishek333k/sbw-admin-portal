@@ -154,6 +154,25 @@
         .g-btn-text:hover { background: #f3f7fe; }
         .slide-in { animation: slideIn 0.3s forwards; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+		
+		
+		/* 🟢 GOOGLE MATERIAL LOGIN THEME */
+        .login-wall {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: #f0f4f9; /* Solid Google White/Grey */
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .login-wall.open {
+            display: flex;
+            opacity: 1;
+        }
+        .google-sans { font-family: 'Google Sans', sans-serif; }
 
         .btn-pro {
             padding: 8px 16px;
@@ -325,7 +344,7 @@
     <main
         class="flex-grow overflow-y-auto p-8 relative bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
 
-        <div id="login-overlay" class="modal-overlay" style="z-index: 999;">
+        <div id="login-overlay" class="login-wall">
             <div class="g-card" id="authCard">
                 <div class="text-center mb-8">
                     <h1 class="google-sans text-2xl font-normal text-[#1f1f1f] mb-2" id="headerTitle">Sign in</h1>
@@ -340,7 +359,9 @@
 
                 <div id="step1" class="slide-in">
                     <div class="g-input-group">
-                        <input type="text" id="authId" class="g-input" placeholder=" " onkeypress="if(event.key === 'Enter') handleNextStep()">
+                        <input type="text" id="authId" class="g-input" placeholder=" " 
+                               oninput="if(/^[0-9]/.test(this.value)) { this.value = this.value.replace(/[^0-9]/g, '').substring(0, 10); }"
+                               onkeypress="if(event.key === 'Enter') handleNextStep()">
                         <label class="g-label">Email or 10-Digit Mobile</label>
                     </div>
                     <div class="text-sm text-[#444746] mb-8">
