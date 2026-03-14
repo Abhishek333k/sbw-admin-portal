@@ -134,7 +134,10 @@
                 </div>
             </div>
             <div id="otp-group" class="hidden text-left mb-6">
-                <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Security Code</label>
+                <div class="flex justify-between items-end mb-1">
+                    <label class="text-[10px] text-emerald-400 font-bold uppercase block">Security Code</label>
+                    <button onclick="resetMobileFlow()" class="text-[9px] text-blue-400 hover:text-white underline font-mono">CHANGE NUMBER</button>
+                </div>
                 <input type="tel" id="authOtp" class="cyber-input text-center tracking-[0.5em] font-bold text-lg" placeholder="••••••" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6)">
             </div>
             <div id="recaptcha-container" class="mb-4 flex justify-center"></div>
