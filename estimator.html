@@ -641,13 +641,21 @@
     function addTierInput(container, start, end, oldValues) {
         const rangeKey = `${start}-${end}`;
         const div = document.createElement('div');
-        div.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom:5px; align-items:center;';
+        div.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:8px; align-items:center;';
         
+        // Advanced UX: Automatically set a default rate for the 1-100 tier if it's empty
+        let defaultRate = '';
+        if (start === 1) defaultRate = '70'; // Example: ₹70 for 1-100ft. Change as needed.
+        if (start === 101) defaultRate = '80'; // Example: ₹80 for 101-150ft.
+        
+        // Preserve the user's typed value, or fall back to our smart default
+        const finalValue = oldValues[rangeKey] || defaultRate;
+
         div.innerHTML = `
-            <div style="font-size:11px; color:#555;">${start}-${end} Ft</div>
+            <div style="font-size:13px; color:var(--text-gray); font-weight:500;">${start}-${end} Ft</div>
             <input type="number" class="tier-rate" data-start="${start}" data-end="${end}" 
                    data-range="${rangeKey}" placeholder="Rate" 
-                   value="${oldValues[rangeKey] || ''}" onkeyup="recalc()">
+                   value="${finalValue}" oninput="recalc()">
         `;
         container.appendChild(div);
     }
@@ -696,7 +704,12 @@
         // 1. Drilling
         if(document.getElementById('chk_drill').checked) {
             const depth = parseFloat(document.getElementById('inpDepth').value) || 0;
-            const lastTierEnd = parseInt(document.querySelector('.tier-rate:last-child')?.dataset.end || 100);
+            const tierNodes = document.querySelectorAll('.tier-rate');
+            
+            // 🔴 ARCHITECT FIX: Correctly find the last tier without relying on faulty CSS pseudo-classes
+            const lastTierEnd = tierNodes.length > 0 ? parseInt(tierNodes[tierNodes.length - 1].dataset.end) : 100;
+            
+            // Only rebuild the DOM if we actually need deeper tiers. Preserves cursor focus.
             if(depth > lastTierEnd) generateDrillTiers(depth);
 
             let drillTotal = 0;
@@ -976,6 +989,40 @@ async function shareDocument() {
         shareBtn.innerText = "Share";
     }
 }
+
+// --- ⌨️ ARCHITECT'S DATA ENTRY & EFFICIENCY PATCH ---
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            // 1. Auto-upgrade all 'onkeyup' attributes to instantaneous 'oninput'
+            document.querySelectorAll('input, textarea').forEach(el => {
+                if (el.hasAttribute('onkeyup')) {
+                    el.setAttribute('oninput', el.getAttribute('onkeyup'));
+                    el.removeAttribute('onkeyup');
+                }
+            });
+
+            // 2. Power-User Shortcut: 'Enter' key advances to the next input field
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const el = e.target;
+                    
+                    // Only intercept if we are in an input or select box (let textareas behave normally)
+                    if ((el.tagName === 'INPUT' && el.type !== 'checkbox') || el.tagName === 'SELECT') {
+                        e.preventDefault(); // Prevent accidental form submissions
+                        
+                        // Find all visible, editable inputs and buttons
+                        const focusable = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([readonly]), select, button.btn-add'));
+                        const index = focusable.indexOf(el);
+                        
+                        if (index > -1 && index < focusable.length - 1) {
+                            focusable[index + 1].focus(); // Jump to next field
+                        } else {
+                            el.blur(); // Hide keyboard if at the end
+                        }
+                    }
+                }
+            });
+        });
 </script>
 </body>
 </html>
