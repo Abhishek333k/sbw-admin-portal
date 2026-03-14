@@ -6,24 +6,26 @@
     <title>Sagar Borewells - Corporate Suite</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+	<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        /* --- CORE THEME --- */
+/* --- GOOGLE WORKSPACE THEME --- */
         :root {
-            --bg-color: #e0e5ec;
-            --sidebar-width: 420px;
+            --bg-color: #f4f7fc; /* Google Drive background */
+            --sidebar-width: 450px;
             --sidebar-bg: #ffffff;
-            --primary-color: #005f73;
-            --accent-color: #0a9396;
-            --text-dark: #333;
-            --border-color: #ced4da;
-            --paper-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            --primary-color: #0b57d0; /* Google Blue */
+            --primary-hover: #0842a0;
+            --text-dark: #1f1f1f;
+            --text-gray: #444746;
+            --border-color: #c7c7c7;
+            --paper-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
         }
 
         * { box-sizing: border-box; outline: none; }
         
         body {
-            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: var(--text-dark);
@@ -31,18 +33,29 @@
             display: flex;
             overflow: hidden;
         }
+        
+        .google-sans { font-family: 'Google Sans', sans-serif; }
 
         /* --- LAYOUT --- */
-        .app-container { display: flex; width: 100%; height: 100%; }
+        .app-container { display: flex; width: 100%; height: 100%; flex-direction: row-reverse; }
 
         .preview-area {
             flex: 1;
-            padding: 30px;
+            padding: 40px;
             overflow-y: auto;
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            background: #e0e5ec;
+            flex-direction: column;
+            align-items: center;
+            background: var(--bg-color);
+        }
+        
+        /* Top Navigation Bar for Preview Area */
+        .top-nav {
+            width: 100%;
+            max-width: 210mm;
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 20px;
         }
 
         .sidebar {
@@ -53,120 +66,73 @@
             flex-direction: column;
             height: 100%;
             overflow-y: auto;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.05);
+            box-shadow: -2px 0 10px rgba(0,0,0,0.05);
             z-index: 100;
         }
 
-        /* --- SIDEBAR COMPONENTS --- */
+        /* --- SIDEBAR COMPONENTS (MATERIAL 3) --- */
         .panel-header {
-            padding: 15px 20px;
-            background: #1f2937;
-            color: white;
+            padding: 20px 24px;
+            background: #ffffff;
+            color: var(--text-dark);
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky; top: 0; z-index: 10;
+            border-bottom: 1px solid var(--border-color);
         }
-        .panel-title { font-weight: 700; letter-spacing: 0.5px; font-size: 14px; text-transform: uppercase; }
-        .header-controls { display: flex; gap: 8px; }
-        .btn-mini { background: #374151; border: 1px solid #4b5563; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
-        .btn-mini:hover { background: #4b5563; }
+        .panel-title { font-weight: 500; font-size: 20px; font-family: 'Google Sans', sans-serif; }
+        .header-controls { display: flex; gap: 12px; }
 
-        .panel-content { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        /* Material Buttons */
+        .btn-mini { background: transparent; color: var(--primary-color); border: none; padding: 8px 16px; border-radius: 20px; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 0.2s; font-family: 'Google Sans', sans-serif; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-mini:hover { background: #f3f7fe; }
+        .btn-add { width: 100%; padding: 8px; background: #f0f4f9; color: var(--primary-color); border: none; border-radius: 20px; font-weight: 500; cursor: pointer; margin-top: 5px; font-size: 13px; font-family: 'Google Sans', sans-serif; }
+        .btn-add:hover { background: #e8f0fe; }
+        .btn-print { background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 24px; font-weight: 500; cursor: pointer; width: 100%; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); margin-top: 10px; font-family: 'Google Sans', sans-serif; }
+        .btn-print:hover { background: var(--primary-hover); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .btn-share { background: #188038; color: white; border: none; padding: 10px 24px; border-radius: 24px; font-weight: 500; cursor: pointer; flex: 1; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); margin-top: 10px; font-family: 'Google Sans', sans-serif; }
+        .btn-share:hover { background: #137333; }
 
-        .control-group {
-            background: #f8f9fa;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 12px;
-            position: relative;
-        }
+        .panel-content { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
 
-        .group-header {
-            font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase;
-            margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .control-group { background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 20px; position: relative; }
+        .group-header { font-size: 14px; font-weight: 500; color: var(--primary-color); margin-bottom: 16px; border-bottom: none; display: flex; justify-content: space-between; align-items: center; font-family: 'Google Sans', sans-serif; text-transform: none; }
 
-        .input-row { display: grid; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .input-row { display: grid; gap: 16px; margin-bottom: 16px; align-items: center; }
         .input-row.cols-2 { grid-template-columns: 1fr 1fr; }
         .input-row.cols-3 { grid-template-columns: 0.5fr 0.5fr 1fr; }
         
-        label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 2px; color: #333; }
+        label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: var(--text-gray); }
         
-        input, select, textarea {
-            width: 100%; padding: 6px 8px; border: 1px solid var(--border-color);
-            border-radius: 4px; font-size: 12px; background: #fff;
-            transition: all 0.2s;
-        }
-        input:focus, select:focus, textarea:focus { 
-            border-color: var(--accent-color);
-        }
+        input, select, textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; background: #ffffff; transition: all 0.2s; color: var(--text-dark); font-family: 'Roboto', sans-serif; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary-color); border-width: 2px; padding: 11px 13px; }
 
         /* Checklist Item Style */
-        .checklist-item {
-            background: #fff;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 8px;
-            margin-bottom: 6px;
-        }
-        
-        .check-header {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
-        }
-        .check-header input[type="checkbox"] { width: 14px; height: 14px; margin: 0; cursor: pointer; accent-color: var(--primary-color); }
-        .item-label { font-weight: 600; font-size: 12px; flex: 1; cursor: pointer; color: #333; }
+        .checklist-item { background: #ffffff; border-bottom: 1px solid #f1f3f4; border-radius: 0; padding: 12px 0; margin-bottom: 0; border-top: none; border-left: none; border-right: none; }
+        .checklist-item:last-child { border-bottom: none; }
+        .check-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .check-header input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--primary-color); }
+        .item-label { font-weight: 400; font-size: 14px; flex: 1; cursor: pointer; color: var(--text-dark); }
 
-        .custom-row-inputs {
-            display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 25px; gap: 4px; align-items: center; margin-bottom: 4px;
-        }
-        .btn-del {
-            background: #fee2e2; color: #ef4444; border: 1px solid #fecaca;
-            height: 28px; width: 100%; display: flex; align-items: center; justify-content: center;
-            border-radius: 4px; cursor: pointer; font-size: 14px;
-        }
-        .btn-add {
-            width: 100%; padding: 6px; background: #e0f2fe; color: #005f73;
-            border: 1px dashed #0a9396; border-radius: 4px; font-weight: 600; cursor: pointer;
-            margin-top: 5px; font-size: 11px;
-        }
-
-        .btn-print {
-            background: var(--primary-color); color: white; border: none; padding: 10px;
-            border-radius: 4px; font-weight: 600; cursor: pointer; width: 100%; font-size: 13px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 10px;
-        }
-        .btn-print:hover { opacity: 0.9; }
+        .custom-row-inputs { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .btn-del { background: transparent; color: #d93025; border: none; height: 36px; width: 100%; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; font-size: 20px; transition: background 0.2s; }
+        .btn-del:hover { background: #fce8e6; }
         
-        .filename-box {
-            font-size: 11px; color: #666; background: #f0f0f0; border: 1px solid #ccc;
-            padding: 5px; margin-top: 5px; border-radius: 4px; word-break: break-all;
-            user-select: all; text-align: center;
-        }
+        .filename-box { font-size: 12px; color: var(--text-gray); background: #f1f3f4; border: 1px solid transparent; padding: 8px; margin-top: 8px; border-radius: 4px; word-break: break-all; user-select: all; text-align: center; font-family: 'Roboto Mono', monospace; }
 
         /* Map & Details */
-        .map-wrapper {
-             margin-top: 5px; height: 120px; width: 100%; overflow: hidden;
-             border: 1px solid #ccc; position: relative; border-radius: 4px; display: none;
-        }
+        .map-wrapper { margin-top: 8px; height: 140px; width: 100%; overflow: hidden; border: 1px solid var(--border-color); position: relative; border-radius: 8px; display: none; z-index: 1; }
         .map-iframe { width: 100%; height: 140%; margin-top: -35px; border: 0; }
         
         /* Rich Text Editor */
-        .rte-toolbar {
-            display: flex; gap: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;
-        }
-        .rte-btn {
-            background: #fff; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;
-            width: 24px; height: 24px; font-weight: bold; display: flex; align-items: center; justify-content: center;
-        }
-        .rte-btn:hover { background: #eee; }
-        .rte-content {
-            min-height: 100px; max-height: 200px; overflow-y: auto; 
-            border: 1px solid #ccc; background: #fff; padding: 8px; 
-            font-size: 11px; border-radius: 4px; outline: none;
-        }
+        .rte-toolbar { display: flex; gap: 8px; margin-bottom: 8px; border-bottom: 1px solid #f1f3f4; padding-bottom: 8px; }
+        .rte-btn { background: transparent; border: none; border-radius: 4px; cursor: pointer; width: 32px; height: 32px; font-weight: bold; display: flex; align-items: center; justify-content: center; color: var(--text-gray); }
+        .rte-btn:hover { background: #f1f3f4; }
+        .rte-content { min-height: 100px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); background: #ffffff; padding: 12px; font-size: 13px; border-radius: 4px; outline: none; line-height: 1.5; }
+        .rte-content:focus { border-color: var(--primary-color); border-width: 2px; padding: 11px; }
         .rte-content ul { padding-left: 20px; margin: 0; }
+
 
         /* --- PAPER PREVIEW --- */
         .paper {
@@ -255,8 +221,13 @@
 <body>
 
 <div class="app-container">
-    <!-- PREVIEW AREA -->
-    <div class="preview-area">
+    <div class="preview-area custom-scrollbar">
+        <div class="top-nav">
+            <button class="btn-mini" style="background:#ffffff; border:1px solid #dadce0; color:#444746; box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 8px 16px;" onclick="window.location.href='index.html'">
+                &#8592; Back to Console
+            </button>
+        </div>
+
         <div class="paper" id="printDoc">
             <header>
                 <div class="brand">
@@ -940,10 +911,10 @@ function updateMap() {
         // Esri for Satellite View (No API key required)
         satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
         
-        marker = L.marker([lat, lng]).addTo(leafletMap);
+        mapMarker = L.marker([lat, lng]).addTo(leafletMap);
     } else {
         leafletMap.setView([lat, lng], 15);
-        marker.setLatLng([lat, lng]);
+        mapMarker.setLatLng([lat, lng]);
     }
 
     // Layer Switching Logic
