@@ -105,15 +105,31 @@
     <main class="flex-grow overflow-y-auto p-8 relative bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
         
         <div id="login-overlay" class="modal-overlay" style="z-index: 999;">
-            <div class="glass-card p-8 w-80 text-center border-t-4 border-blue-600">
-                <h2 class="text-xl font-bold text-white mb-6">SECURE ACCESS</h2>
-                <div class="text-left mb-4"><label class="text-[10px] text-blue-400 font-bold uppercase block mb-1">ID Verification</label><div class="flex bg-slate-900 border border-slate-700 rounded overflow-hidden"><span class="px-3 py-2 text-slate-500 border-r border-slate-700 font-mono text-xs">+91</span><input type="tel" id="adminPhone" class="w-full bg-transparent px-3 py-2 text-white outline-none font-mono font-bold text-sm" placeholder="ACCESS ID" maxlength="10"></div></div>
-                <div id="otp-group" class="hidden text-left mb-6"><label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Security Code</label><input type="tel" id="adminOtp" class="cyber-input text-center tracking-[0.5em] font-bold text-lg" placeholder="••••••" maxlength="6"></div>
-                <div id="recaptcha-container" class="mb-4 flex justify-center"></div>
-                <button id="sendOtpBtn" onclick="sendAdminOTP()" class="w-full btn-pro btn-primary">Authenticate</button>
-                <button id="verifyOtpBtn" onclick="verifyAdminOTP()" class="hidden w-full btn-pro bg-emerald-600 hover:bg-emerald-500 text-white">Unlock System</button>
-            </div>
+    <div class="glass-card p-8 w-80 text-center border-t-4 border-blue-600">
+        <h2 class="text-xl font-bold text-white mb-6">SECURE ACCESS</h2>
+        
+        <div class="text-left mb-4">
+            <label class="text-[10px] text-blue-400 font-bold uppercase block mb-1">ID Verification</label>
+            <input type="text" id="adminId" class="cyber-input font-mono font-bold text-sm" placeholder="Email or 10-Digit Mobile" oninput="resetAuthFlow()">
         </div>
+
+        <div id="password-group" class="hidden text-left mb-6 animate-fade-in">
+            <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Passcode</label>
+            <input type="password" id="adminPassword" class="cyber-input font-mono font-bold" placeholder="••••••••">
+        </div>
+
+        <div id="otp-group" class="hidden text-left mb-6 animate-fade-in">
+            <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Security Code</label>
+            <input type="tel" id="adminOtp" class="cyber-input text-center tracking-[0.5em] font-bold text-lg" placeholder="••••••" maxlength="6">
+        </div>
+
+        <div id="recaptcha-container" class="mb-4 flex justify-center"></div>
+
+        <button id="btnNext" onclick="determineAuthMethod()" class="w-full btn-pro btn-primary">Continue</button>
+        <button id="btnLoginEmail" onclick="loginWithEmail()" class="hidden w-full btn-pro bg-emerald-600 hover:bg-emerald-500 text-white">Access Vault</button>
+        <button id="btnVerifyOtp" onclick="verifyAdminOTP()" class="hidden w-full btn-pro bg-emerald-600 hover:bg-emerald-500 text-white">Unlock System</button>
+    </div>
+</div>
 
         <header class="flex justify-between items-center mb-6">
             <div><h2 class="text-2xl font-bold text-white">Command Console</h2><p class="text-slate-500 text-xs mt-1">Real-time Operations</p></div>
@@ -278,63 +294,117 @@
             }).showToast();
         }
 
-        // --- AUTH & SETUP ---
-        auth.onAuthStateChanged(user => {
-            const loader = document.getElementById('system-loader');
-            const loginModal = document.getElementById('login-overlay');
+        // --- UNIFIED AUTH & SETUP ---
 
-            if(user) {
-                // Check if user is an admin
-                db.collection('admins').doc(user.phoneNumber).get().then(doc => {
-                    if (doc.exists) {
-                        if(loader) loader.style.display = 'none';
-                        if(loginModal) loginModal.classList.remove('open');
-                        showSection('leads'); 
-                        loadAnalytics(); 
-                    } else { 
-                        notify("UNAUTHORIZED ACCESS", "error"); 
-                        auth.signOut(); 
-                        if(loader) loader.style.display = 'none';
-                        loginModal.classList.add('open');
-                    }
-                }).catch(e => {
-                    console.error(e); // Log error for debugging
-                    notify("System Error: " + e.message, "error");
-                    if(loader) loader.style.display = 'none';
-                    loginModal.classList.add('open');
-                });
-            } else {
-                // No user logged in
+// Critical Architectural Update: Dynamic UI Reset
+function resetAuthFlow() {
+    document.getElementById('password-group').classList.add('hidden');
+    document.getElementById('otp-group').classList.add('hidden');
+    document.getElementById('btnNext').classList.remove('hidden');
+    document.getElementById('btnLoginEmail').classList.add('hidden');
+    document.getElementById('btnVerifyOtp').classList.add('hidden');
+}
+
+// Auto-detect login method based on input
+function determineAuthMethod() {
+    const input = document.getElementById('adminId').value.trim();
+    
+    if (input.includes('@')) {
+        // Email Flow detected
+        document.getElementById('btnNext').classList.add('hidden');
+        document.getElementById('password-group').classList.remove('hidden');
+        document.getElementById('btnLoginEmail').classList.remove('hidden');
+    } else if (/^\d{10}$/.test(input)) {
+        // 10-Digit Mobile Flow detected
+        document.getElementById('btnNext').classList.add('hidden');
+        sendAdminOTP(input);
+    } else {
+        notify("INVALID ID FORMAT. Use Email or 10-Digit Mobile.", "error");
+    }
+}
+
+// Standard Email Login
+function loginWithEmail() {
+    const email = document.getElementById('adminId').value.trim();
+    const pass = document.getElementById('adminPassword').value;
+    const btn = document.getElementById('btnLoginEmail');
+    
+    btn.innerText = "AUTHENTICATING...";
+
+    auth.signInWithEmailAndPassword(email, pass).catch(e => {
+        console.error(e);
+        notify("ACCESS DENIED: " + e.message, "error");
+        btn.innerText = "Access Vault";
+    });
+}
+
+// Advanced OTP Login with reCAPTCHA
+function sendAdminOTP(phone) {
+    const btn = document.getElementById('btnVerifyOtp');
+    document.getElementById('otp-group').classList.remove('hidden');
+    document.getElementById('btnVerifyOtp').classList.remove('hidden');
+    btn.innerText = "TRANSMITTING...";
+    
+    if(!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {'size': 'invisible'});
+    }
+    
+    auth.signInWithPhoneNumber('+91' + phone, window.recaptchaVerifier).then(cr => {
+        window.confirmationResult = cr; 
+        btn.innerText = "Unlock System"; 
+        notify("OTP Dispatched to " + phone);
+    }).catch(e => {
+        console.error(e);
+        notify("TRANSMISSION FAILED: " + e.message, "error");
+        resetAuthFlow();
+    });
+}
+
+function verifyAdminOTP() { 
+    const code = document.getElementById('adminOtp').value;
+    const btn = document.getElementById('btnVerifyOtp');
+    btn.innerText = "VERIFYING...";
+    
+    window.confirmationResult.confirm(code).catch((e) => {
+        notify("INVALID CODE", "error");
+        btn.innerText = "Unlock System";
+    }); 
+}
+
+// 🟢 THE VAULT DOOR: Firestore Security Validation
+auth.onAuthStateChanged(user => {
+    const loader = document.getElementById('system-loader');
+    const loginModal = document.getElementById('login-overlay');
+
+    if(user) {
+        // Support both login types. Firebase returns phone numbers with the +91 prefix.
+        const adminIdentifier = user.email || user.phoneNumber;
+
+        db.collection('admins').doc(adminIdentifier).get().then(doc => {
+            if (doc.exists) {
+                if(loader) loader.style.display = 'none';
+                if(loginModal) loginModal.classList.remove('open');
+                showSection('leads'); 
+                loadAnalytics(); 
+            } else { 
+                notify("UNAUTHORIZED ACCESS: ID not found in Admin Registry.", "error"); 
+                auth.signOut(); 
                 if(loader) loader.style.display = 'none';
                 loginModal.classList.add('open');
+                resetAuthFlow();
             }
+        }).catch(e => {
+            console.error(e);
+            notify("System Error: " + e.message, "error");
+            if(loader) loader.style.display = 'none';
+            loginModal.classList.add('open');
+            resetAuthFlow();
         });
-
-        function sendAdminOTP() {
-            const phone = document.getElementById('adminPhone').value;
-            if(phone.length !== 10) return notify("INVALID ID", "error");
-            
-            const btn = document.getElementById('sendOtpBtn'); 
-            btn.innerText = "TRANSMITTING...";
-            
-            if(!window.recaptchaVerifier) window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {'size': 'invisible'});
-            
-            auth.signInWithPhoneNumber('+91'+phone, window.recaptchaVerifier).then(cr => {
-                window.confirmationResult = cr; 
-                btn.classList.add('hidden');
-                document.getElementById('otp-group').classList.remove('hidden');
-                document.getElementById('verifyOtpBtn').classList.remove('hidden');
-            }).catch(e => {
-                console.error(e);
-                notify("TRANSMISSION FAILED: " + e.message, "error");
-                btn.innerText = "Authenticate"; // Reset button text
-            });
-        }
-
-        function verifyAdminOTP() { 
-            const code = document.getElementById('adminOtp').value;
-            window.confirmationResult.confirm(code).catch((e) => notify("INVALID CODE", "error")); 
-        }
+    } else {
+        if(loader) loader.style.display = 'none';
+        loginModal.classList.add('open');
+    }
+});
 
         function logout() { auth.signOut(); window.location.reload(); }
 
