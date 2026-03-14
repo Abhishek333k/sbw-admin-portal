@@ -1046,37 +1046,43 @@
         // 🔴 FIX: Pull data from cache using ID instead of parsing URL encoded strings
         let currentPDFElement;
 
-        function previewQuote(docId) {
+        function previewQuote(docId) { 
             const data = leadsCache.find(l => l.docId === docId);
-            if (!data) return notify("Data lost. Please refresh.", "error");
+            if(!data) return notify("Data lost. Please refresh.", "error");
 
             if (!data.rows) {
-                let remaining = parseInt(data.depth || 0); let rows = ""; let floor = 0; let currentRate = 70;
+                let remaining = parseInt(data.depth || 0); 
+                let rows = "";
+                let floor = 0; 
+                let currentRate = 70;
+                
                 if (remaining > 0) {
-                    while (remaining > 0) {
+                    while(remaining > 0) {
                         let chunk = (remaining >= 50) ? 50 : remaining;
                         let cost = chunk * currentRate;
-                        rows += `<tr><td>${floor}-${floor + chunk}ft</td><td style="text-align:right">₹${cost.toLocaleString()}</td></tr>`;
+                        rows += `<tr><td>${floor}-${floor+chunk}ft</td><td style="text-align:right">₹${cost.toLocaleString()}</td></tr>`;
                         remaining -= chunk; floor += chunk; currentRate += 10;
                     }
                 }
                 data.rows = rows;
             }
-            const content = getInvoiceHTML(data);
-            document.getElementById('previewContent').innerHTML = content;
-            currentPDFElement = content;
-            document.getElementById('previewModal').classList.add('open');
+            
+            const content = getInvoiceHTML(data); 
+            
+            document.getElementById('previewContent').innerHTML = content; 
+            currentPDFElement = content; 
+            document.getElementById('previewModal').classList.add('open'); 
         }
 
-        function previewCert(projectId) {
+        function previewCert(projectId) { 
             const data = projectsCache.find(p => p.projectId === projectId);
-            if (!data) return notify("Data lost. Please refresh.", "error");
+            if(!data) return notify("Data lost. Please refresh.", "error");
 
-            const certData = { id: data.projectId, name: data.customerName, loc: data.location, date: data.date, gps: data.gps, depth: data.depth, casing_depth: data.casing_depth, casing_type: data.casing_type, yield: data.yield, motor: data.motor, rigType: data.rigType };
-            const content = getCertificateHTML(certData);
-            document.getElementById('previewContent').innerHTML = content;
-            currentPDFElement = content;
-            document.getElementById('previewModal').classList.add('open');
+            const certData = { id: data.projectId, name: data.customerName, loc: data.location, date: data.date, gps: data.gps, depth: data.depth, casing_depth: data.casing_depth, casing_type: data.casing_type, yield: data.yield, motor: data.motor, rigType: data.rigType }; 
+            const content = getCertificateHTML(certData); 
+            document.getElementById('previewContent').innerHTML = content; 
+            currentPDFElement = content; 
+            document.getElementById('previewModal').classList.add('open'); 
         }
 
         // --- SILENT LEAD UTILS ---
@@ -1108,7 +1114,7 @@
                         historyHTML += `
                             <div class="bg-slate-800 p-3 rounded border border-slate-700 flex justify-between items-center text-xs">
                                 <div>
-                                    <div class="text-white font-bold">${item.depth} ft <span class="text-slate-500 font-normal">@ ${item.loc || 'Unknown'}</span></div>
+                                    <div class="text-white font-bold">${item.depth} ft <span class="text-slate-500 font-normal">@ ${escapeHTML(item.loc || 'Unknown')}</span></div>
                                     <div class="text-slate-500 text-[10px]">${dateObj.toLocaleDateString()} • ${dateObj.toLocaleTimeString()}</div>
                                 </div>
                                 <div class="text-emerald-400 font-bold">₹${parseInt(item.total).toLocaleString()}</div>
