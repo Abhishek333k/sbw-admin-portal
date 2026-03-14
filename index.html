@@ -307,7 +307,143 @@
             }).showToast();
         }
 
+<<<<<<< HEAD
         auth.onAuthStateChanged
+=======
+    // --- EXPLICIT AUTHENTICATION LOGIC ---
+
+function resetMobileFlow() {
+    document.getElementById('authOtp').value = "";
+    document.getElementById('otp-group').classList.add('hidden');
+    document.getElementById('btnVerifyOtp').classList.add('hidden');
+    
+    const btnSend = document.getElementById('btnSendOtp');
+    btnSend.classList.remove('hidden');
+    btnSend.innerText = "Send Secure Code";
+    
+    if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+    }
+}
+
+function resetAuthFlow() {
+    document.getElementById('authEmail').value = "";
+    document.getElementById('authPassword').value = "";
+    document.getElementById('btnLoginEmail').innerText = "Access Vault";
+    resetMobileFlow();
+}
+
+function switchLoginTab(mode) {
+    resetAuthFlow();
+    const tEmail = document.getElementById('tab-email');
+    const tMobile = document.getElementById('tab-mobile');
+    const pEmail = document.getElementById('panel-email');
+    const pMobile = document.getElementById('panel-mobile');
+
+    if (mode === 'email') {
+        tEmail.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors";
+        tMobile.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors";
+        pEmail.classList.remove('hidden');
+        pMobile.classList.add('hidden');
+    } else {
+        tMobile.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors";
+        tEmail.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors";
+        pMobile.classList.remove('hidden');
+        pEmail.classList.add('hidden');
+    }
+}
+
+function loginWithEmail() {
+    const email = document.getElementById('authEmail').value.trim();
+    const pass = document.getElementById('authPassword').value;
+    const btn = document.getElementById('btnLoginEmail');
+    
+    if (!email || !pass) return notify("ENTER CREDENTIALS", "error");
+    
+    btn.innerText = "AUTHENTICATING...";
+
+    auth.signInWithEmailAndPassword(email, pass).catch(e => {
+        console.error(e);
+        notify("ACCESS DENIED: " + e.message, "error");
+        btn.innerText = "Access Vault";
+    });
+}
+
+function triggerOTP() {
+    const phone = document.getElementById('authMobile').value.trim();
+    
+    // Hard validation before talking to Firebase
+    if(phone.length !== 10) return notify("INVALID MOBILE. EXACTLY 10 DIGITS REQUIRED.", "error");
+
+    const btnSend = document.getElementById('btnSendOtp');
+    btnSend.innerText = "TRANSMITTING...";
+    
+    if(!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {'size': 'invisible'});
+    }
+    
+    auth.signInWithPhoneNumber('+91' + phone, window.recaptchaVerifier).then(cr => {
+        window.confirmationResult = cr; 
+        btnSend.classList.add('hidden');
+        document.getElementById('otp-group').classList.remove('hidden');
+        document.getElementById('btnVerifyOtp').classList.remove('hidden');
+        notify("OTP Dispatched to " + phone);
+    }).catch(e => {
+        console.error(e);
+        notify("TRANSMISSION FAILED: " + e.message, "error");
+        btnSend.innerText = "Send Secure Code";
+    });
+}
+
+function verifyAdminOTP() { 
+    const code = document.getElementById('authOtp').value;
+    if(code.length !== 6) return notify("INVALID OTP LENGTH", "error");
+
+    const btn = document.getElementById('btnVerifyOtp');
+    btn.innerText = "VERIFYING...";
+    
+    window.confirmationResult.confirm(code).catch((e) => {
+        notify("INVALID SECURITY CODE", "error");
+        btn.innerText = "Unlock System";
+    }); 
+}
+                
+
+// 🟢 THE VAULT DOOR: Firestore Security Validation
+auth.onAuthStateChanged(user => {
+    const loader = document.getElementById('system-loader');
+    const loginModal = document.getElementById('login-overlay');
+
+    if(user) {
+        // Support both login types. Firebase returns phone numbers with the +91 prefix.
+        const adminIdentifier = user.email || user.phoneNumber;
+
+        db.collection('admins').doc(adminIdentifier).get().then(doc => {
+            if (doc.exists) {
+                if(loader) loader.style.display = 'none';
+                if(loginModal) loginModal.classList.remove('open');
+                showSection('leads'); 
+                loadAnalytics(); 
+            } else { 
+                notify("UNAUTHORIZED ACCESS: ID not found in Admin Registry.", "error"); 
+                auth.signOut(); 
+                if(loader) loader.style.display = 'none';
+                loginModal.classList.add('open');
+                resetAuthFlow();
+            }
+        }).catch(e => {
+            console.error(e);
+            notify("System Error: " + e.message, "error");
+            if(loader) loader.style.display = 'none';
+            loginModal.classList.add('open');
+            resetAuthFlow();
+        });
+    } else {
+        if(loader) loader.style.display = 'none';
+        loginModal.classList.add('open');
+    }
+});
+>>>>>>> 16ca6e5df2bac96b123eb2b5b6fd47ad7383bd8b
 
         function logout() { auth.signOut(); window.location.reload(); }
 
