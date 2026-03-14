@@ -309,7 +309,29 @@
 
     // --- EXPLICIT AUTHENTICATION LOGIC ---
 
+function resetMobileFlow() {
+    document.getElementById('authOtp').value = "";
+    document.getElementById('otp-group').classList.add('hidden');
+    document.getElementById('btnVerifyOtp').classList.add('hidden');
+    
+    const btnSend = document.getElementById('btnSendOtp');
+    btnSend.classList.remove('hidden');
+    btnSend.innerText = "Send Secure Code";
+    
+    if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+    }
+}
+
+function resetAuthFlow() {
+    document.getElementById('authEmail').value = "";
+    document.getElementById('authPassword').value = "";
+    document.getElementById('btnLoginEmail').innerText = "Access Vault";
+    resetMobileFlow();
+}
+
 function switchLoginTab(mode) {
+    resetAuthFlow();
     const tEmail = document.getElementById('tab-email');
     const tMobile = document.getElementById('tab-mobile');
     const pEmail = document.getElementById('panel-email');
