@@ -7,10 +7,7 @@
     <title>SBW Admin Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
-        rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&family=Google+Sans:wght@400;500&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -143,6 +140,20 @@
             background-position: right .7rem top 50%;
             background-size: .65rem auto;
         }
+        /* 🟢 GOOGLE MATERIAL LOGIN THEME */
+        .google-sans { font-family: 'Google Sans', sans-serif; }
+        .g-card { background: #ffffff; border-radius: 28px; width: 100%; max-width: 448px; padding: 36px 40px 36px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); transition: all 0.3s ease; }
+        .g-input-group { position: relative; margin-bottom: 24px; }
+        .g-input { width: 100%; padding: 16px 14px 14px; font-size: 16px; border: 1px solid #747775; border-radius: 4px; background: transparent; outline: none; transition: border-color 0.2s; color: #1f1f1f; }
+        .g-input:focus { border: 2px solid #0b57d0; padding: 15px 13px 13px; }
+        .g-label { position: absolute; left: 12px; top: 16px; background: #ffffff; padding: 0 4px; color: #444746; font-size: 16px; transition: 0.2s; pointer-events: none; }
+        .g-input:focus ~ .g-label, .g-input:not(:placeholder-shown) ~ .g-label { top: -9px; left: 10px; font-size: 12px; color: #0b57d0; font-weight: 500; }
+        .g-btn-primary { background: #0b57d0; color: white; border: none; padding: 10px 24px; border-radius: 24px; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+        .g-btn-primary:hover { background: #0842a0; }
+        .g-btn-text { background: transparent; color: #0b57d0; border: none; padding: 10px 16px; border-radius: 24px; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+        .g-btn-text:hover { background: #f3f7fe; }
+        .slide-in { animation: slideIn 0.3s forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
         .btn-pro {
             padding: 8px 16px;
@@ -315,62 +326,56 @@
         class="flex-grow overflow-y-auto p-8 relative bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
 
         <div id="login-overlay" class="modal-overlay" style="z-index: 999;">
-            <div class="glass-card p-8 w-80 text-center border-t-4 border-blue-600 shadow-2xl">
-                <h2 class="text-xl font-bold text-white mb-4">SECURE ACCESS</h2>
-
-                <div class="flex border-b border-slate-700 mb-6">
-                    <button onclick="switchLoginTab('email')" id="tab-email"
-                        class="flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors">Email</button>
-                    <button onclick="switchLoginTab('mobile')" id="tab-mobile"
-                        class="flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors">Mobile
-                        OTP</button>
+            <div class="g-card" id="authCard">
+                <div class="text-center mb-8">
+                    <h1 class="google-sans text-2xl font-normal text-[#1f1f1f] mb-2" id="headerTitle">Sign in</h1>
+                    <p class="text-[14px] text-[#444746]" id="headerSub">to continue to SBW Admin Portal</p>
+                    
+                    <div id="userPill" class="hidden inline-flex items-center gap-2 border border-[#747775] rounded-full px-3 py-1 mt-4 cursor-pointer hover:bg-gray-50" onclick="resetAuthFlow()">
+                        <svg class="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                        <span id="userIdentifier" class="text-sm font-medium text-[#1f1f1f]"></span>
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
                 </div>
 
-                <div id="panel-email" class="animate-fade-in block">
-                    <div class="text-left mb-4">
-                        <label class="text-[10px] text-blue-400 font-bold uppercase block mb-1">Admin Email</label>
-                        <input type="email" id="authEmail" class="cyber-input font-mono text-sm"
-                            placeholder="ceo@sagarborewells.com">
+                <div id="step1" class="slide-in">
+                    <div class="g-input-group">
+                        <input type="text" id="authId" class="g-input" placeholder=" " onkeypress="if(event.key === 'Enter') handleNextStep()">
+                        <label class="g-label">Email or 10-Digit Mobile</label>
                     </div>
-                    <div class="text-left mb-6">
-                        <label class="text-[10px] text-emerald-400 font-bold uppercase block mb-1">Passcode</label>
-                        <input type="password" id="authPassword" class="cyber-input font-mono font-bold"
-                            placeholder="••••••••">
+                    <div class="text-sm text-[#444746] mb-8">
+                        Authorized personnel only. Secure vault access.
                     </div>
-                    <button id="btnLoginEmail" onclick="loginWithEmail()" class="w-full btn-pro btn-primary">Access
-                        Vault</button>
+                    <div class="flex justify-between items-center">
+                        <button class="g-btn-text" onclick="window.location.reload()">Cancel</button>
+                        <button class="g-btn-primary" onclick="handleNextStep()">Next</button>
+                    </div>
                 </div>
 
-                <div id="panel-mobile" class="hidden animate-fade-in">
-                    <div class="text-left mb-4">
-                        <label class="text-[10px] text-blue-400 font-bold uppercase block mb-1">Admin Mobile</label>
-                        <div
-                            class="flex bg-slate-900 border border-slate-700 rounded overflow-hidden focus-within:border-blue-500 transition-colors">
-                            <span
-                                class="px-3 py-2 text-slate-500 border-r border-slate-700 font-mono text-xs flex items-center bg-slate-800">+91</span>
-                            <input type="tel" id="authMobile"
-                                class="w-full bg-transparent px-3 py-2 text-white outline-none font-mono font-bold text-sm"
-                                placeholder="9876543210"
-                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
-                        </div>
+                <div id="step2-password" class="hidden">
+                    <div class="g-input-group slide-in">
+                        <input type="password" id="authPassword" class="g-input" placeholder=" " onkeypress="if(event.key === 'Enter') loginWithEmail()">
+                        <label class="g-label">Enter your passcode</label>
                     </div>
-                    <div id="otp-group" class="hidden text-left mb-6">
-                        <div class="flex justify-between items-end mb-1">
-                            <label class="text-[10px] text-emerald-400 font-bold uppercase block">Security Code</label>
-                            <button onclick="resetMobileFlow()"
-                                class="text-[9px] text-blue-400 hover:text-white underline font-mono">CHANGE
-                                NUMBER</button>
-                        </div>
-                        <input type="tel" id="authOtp"
-                            class="cyber-input text-center tracking-[0.5em] font-bold text-lg" placeholder="••••••"
-                            oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6)">
+                    <div class="flex justify-between items-center mt-10">
+                        <button class="g-btn-text" onclick="resetAuthFlow()">Back</button>
+                        <button class="g-btn-primary" id="btnLoginEmail" onclick="loginWithEmail()">Sign in</button>
+                    </div>
+                </div>
+
+                <div id="step2-otp" class="hidden">
+                    <div class="text-sm text-[#444746] mb-6 slide-in">
+                        A text message with a 6-digit verification code was sent to your phone.
+                    </div>
+                    <div class="g-input-group slide-in">
+                        <input type="tel" id="authOtp" class="g-input tracking-[0.5em] text-center text-xl font-bold" placeholder=" " maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6)" onkeypress="if(event.key === 'Enter' && this.value.length === 6) verifyAdminOTP()">
+                        <label class="g-label">Enter code</label>
                     </div>
                     <div id="recaptcha-container" class="mb-4 flex justify-center"></div>
-                    <button id="btnSendOtp" onclick="triggerOTP()" class="w-full btn-pro btn-primary">Send Secure
-                        Code</button>
-                    <button id="btnVerifyOtp" onclick="verifyAdminOTP()"
-                        class="hidden w-full btn-pro bg-emerald-600 hover:bg-emerald-500 text-white">Unlock
-                        System</button>
+                    <div class="flex justify-between items-center mt-10">
+                        <button class="g-btn-text" id="btnSendOtp" onclick="triggerOTP()">Resend code</button>
+                        <button class="g-btn-primary" id="btnVerifyOtp" onclick="verifyAdminOTP()">Verify</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -744,75 +749,92 @@
         }
 
 
-        // --- EXPLICIT AUTHENTICATION LOGIC ---
+        // --- 🟢 GOOGLE MATERIAL AUTHENTICATION LOGIC ---
 
-        function resetMobileFlow() {
-            document.getElementById('authOtp').value = "";
-            document.getElementById('otp-group').classList.add('hidden');
-            document.getElementById('btnVerifyOtp').classList.add('hidden');
+        function handleNextStep() {
+            const input = document.getElementById('authId').value.trim();
+            if (!input) return notify("Please enter an Email or Phone.", "error");
 
-            const btnSend = document.getElementById('btnSendOtp');
-            btnSend.classList.remove('hidden');
-            btnSend.innerText = "Send Secure Code";
+            const isEmail = input.includes('@');
+            const isPhone = /^\d{10}$/.test(input);
 
+            if (!isEmail && !isPhone) return notify("Enter a valid email or 10-digit mobile number.", "error");
+
+            // Hide Step 1 & update header
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('headerTitle').innerText = "Welcome";
+            document.getElementById('headerSub').classList.add('hidden');
+            document.getElementById('userPill').classList.remove('hidden');
+            document.getElementById('userIdentifier').innerText = input;
+
+            // Route to correct next step
+            if (isEmail) {
+                document.getElementById('step2-password').classList.remove('hidden');
+                document.getElementById('step2-password').classList.add('slide-in');
+                setTimeout(() => document.getElementById('authPassword').focus(), 100);
+            } else if (isPhone) {
+                document.getElementById('step2-otp').classList.remove('hidden');
+                document.getElementById('step2-otp').classList.add('slide-in');
+                triggerOTP(input); // Auto-trigger SMS
+            }
+        }
+
+        function resetAuthFlow() {
+            // Clear inputs
+            if(document.getElementById('authId')) document.getElementById('authId').value = "";
+            if(document.getElementById('authPassword')) document.getElementById('authPassword').value = "";
+            if(document.getElementById('authOtp')) document.getElementById('authOtp').value = "";
+
+            // Reset UI steps
+            document.getElementById('step2-password').classList.add('hidden');
+            document.getElementById('step2-otp').classList.add('hidden');
+            
+            document.getElementById('headerTitle').innerText = "Sign in";
+            document.getElementById('headerSub').classList.remove('hidden');
+            document.getElementById('userPill').classList.add('hidden');
+            
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('step1').classList.add('slide-in');
+            
+            // Reset Buttons
+            document.getElementById('btnLoginEmail').innerText = "Sign in";
+            document.getElementById('btnVerifyOtp').innerText = "Verify";
+            document.getElementById('btnSendOtp').innerText = "Resend code";
+            document.getElementById('btnSendOtp').classList.remove('hidden');
+
+            // Clear Recaptcha cleanly
             if (window.recaptchaVerifier) {
                 try { window.recaptchaVerifier.clear(); } catch (e) { }
                 window.recaptchaVerifier = null;
             }
-            document.getElementById('recaptcha-container').innerHTML = '';
-        }
-
-        function resetAuthFlow() {
-            document.getElementById('authEmail').value = "";
-            document.getElementById('authPassword').value = "";
-            document.getElementById('btnLoginEmail').innerText = "Access Vault";
-            resetMobileFlow();
-        }
-
-        function switchLoginTab(mode) {
-            resetAuthFlow();
-            const tEmail = document.getElementById('tab-email');
-            const tMobile = document.getElementById('tab-mobile');
-            const pEmail = document.getElementById('panel-email');
-            const pMobile = document.getElementById('panel-mobile');
-
-            if (mode === 'email') {
-                tEmail.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors";
-                tMobile.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors";
-                pEmail.classList.remove('hidden');
-                pMobile.classList.add('hidden');
-            } else {
-                tMobile.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-blue-400 border-b-2 border-blue-500 transition-colors";
-                tEmail.className = "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-colors";
-                pMobile.classList.remove('hidden');
-                pEmail.classList.add('hidden');
-            }
+            if(document.getElementById('recaptcha-container')) document.getElementById('recaptcha-container').innerHTML = '';
+            
+            setTimeout(() => document.getElementById('authId').focus(), 100);
         }
 
         function loginWithEmail() {
-            const email = document.getElementById('authEmail').value.trim();
+            const email = document.getElementById('authId').value.trim();
             const pass = document.getElementById('authPassword').value;
             const btn = document.getElementById('btnLoginEmail');
 
             if (!email || !pass) return notify("ENTER CREDENTIALS", "error");
-
-            btn.innerText = "AUTHENTICATING...";
+            
+            btn.innerText = "Signing in...";
 
             auth.signInWithEmailAndPassword(email, pass).catch(e => {
                 console.error(e);
                 notify("ACCESS DENIED: " + e.message, "error");
-                btn.innerText = "Access Vault";
+                btn.innerText = "Sign in";
             });
         }
 
-        function triggerOTP() {
-            const phone = document.getElementById('authMobile').value.trim();
-
-            // Hard validation before talking to Firebase
-            if (phone.length !== 10) return notify("INVALID MOBILE. EXACTLY 10 DIGITS REQUIRED.", "error");
-
+        function triggerOTP(phoneStr) {
+            let phone = phoneStr;
+            // If called from the 'Resend' button without arguments, pull from the hidden ID field
+            if (!phone || typeof phone !== 'string') phone = document.getElementById('authId').value.trim(); 
+            
             const btnSend = document.getElementById('btnSendOtp');
-            btnSend.innerText = "TRANSMITTING...";
+            btnSend.innerText = "Sending...";
 
             if (!window.recaptchaVerifier) {
                 window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { 'size': 'invisible' });
@@ -821,13 +843,14 @@
             auth.signInWithPhoneNumber('+91' + phone, window.recaptchaVerifier).then(cr => {
                 window.confirmationResult = cr;
                 btnSend.classList.add('hidden');
-                document.getElementById('otp-group').classList.remove('hidden');
                 document.getElementById('btnVerifyOtp').classList.remove('hidden');
                 notify("OTP Dispatched to " + phone);
+                setTimeout(() => document.getElementById('authOtp').focus(), 100);
             }).catch(e => {
                 console.error(e);
                 notify("TRANSMISSION FAILED: " + e.message, "error");
-                btnSend.innerText = "Send Secure Code";
+                btnSend.innerText = "Resend code";
+                btnSend.classList.remove('hidden');
             });
         }
 
@@ -836,13 +859,24 @@
             if (code.length !== 6) return notify("INVALID OTP LENGTH", "error");
 
             const btn = document.getElementById('btnVerifyOtp');
-            btn.innerText = "VERIFYING...";
+            btn.innerText = "Verifying...";
 
             window.confirmationResult.confirm(code).catch((e) => {
                 notify("INVALID SECURITY CODE", "error");
-                btn.innerText = "Unlock System";
+                btn.innerText = "Verify";
             });
         }
+
+        // --- GLOBAL KEYBOARD HOTFIX ---
+        document.addEventListener("DOMContentLoaded", () => {
+            // Global Project Search (Hit enter to unfocus keyboard on mobile)
+            const searchInp = document.getElementById('searchInput');
+            if(searchInp) {
+                searchInp.addEventListener("keypress", (e) => {
+                    if(e.key === "Enter") searchInp.blur();
+                });
+            }
+        });
 
 
         // 🟢 THE VAULT DOOR: Firestore Security Validation
