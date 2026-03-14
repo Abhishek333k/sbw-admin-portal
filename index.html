@@ -699,6 +699,35 @@
 
         let isEditing = false; // 🟠 FIX: Properly scoped global variable
 
+        // --- ⌨️ ARCHITECT'S UX PATCH: KEYBOARD SHORTCUTS ---
+        document.addEventListener("DOMContentLoaded", () => {
+            // Helper function to bind the Enter key
+            const bindEnter = (inputId, actionFunction) => {
+                const el = document.getElementById(inputId);
+                if (el) {
+                    el.addEventListener("keypress", (e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault(); // Prevent accidental form submits
+                            actionFunction();
+                        }
+                    });
+                }
+            };
+
+            // Email Flow
+            bindEnter('authEmail', () => document.getElementById('authPassword').focus());
+            bindEnter('authPassword', loginWithEmail);
+
+            // Mobile OTP Flow
+            bindEnter('authMobile', triggerOTP);
+            bindEnter('authOtp', () => {
+                if(document.getElementById('authOtp').value.length === 6) verifyAdminOTP();
+            });
+
+            // Global Project Search (Hit enter to unfocus keyboard on mobile)
+            bindEnter('searchInput', () => document.getElementById('searchInput').blur());
+        });
+        
         // 🔴 FIX: XSS Protection Utility
         function escapeHTML(str) {
             if (!str) return '';
@@ -1046,43 +1075,43 @@
         // 🔴 FIX: Pull data from cache using ID instead of parsing URL encoded strings
         let currentPDFElement;
 
-        function previewQuote(docId) { 
+        function previewQuote(docId) {
             const data = leadsCache.find(l => l.docId === docId);
-            if(!data) return notify("Data lost. Please refresh.", "error");
+            if (!data) return notify("Data lost. Please refresh.", "error");
 
             if (!data.rows) {
-                let remaining = parseInt(data.depth || 0); 
+                let remaining = parseInt(data.depth || 0);
                 let rows = "";
-                let floor = 0; 
+                let floor = 0;
                 let currentRate = 70;
-                
+
                 if (remaining > 0) {
-                    while(remaining > 0) {
+                    while (remaining > 0) {
                         let chunk = (remaining >= 50) ? 50 : remaining;
                         let cost = chunk * currentRate;
-                        rows += `<tr><td>${floor}-${floor+chunk}ft</td><td style="text-align:right">₹${cost.toLocaleString()}</td></tr>`;
+                        rows += `<tr><td>${floor}-${floor + chunk}ft</td><td style="text-align:right">₹${cost.toLocaleString()}</td></tr>`;
                         remaining -= chunk; floor += chunk; currentRate += 10;
                     }
                 }
                 data.rows = rows;
             }
-            
-            const content = getInvoiceHTML(data); 
-            
-            document.getElementById('previewContent').innerHTML = content; 
-            currentPDFElement = content; 
-            document.getElementById('previewModal').classList.add('open'); 
+
+            const content = getInvoiceHTML(data);
+
+            document.getElementById('previewContent').innerHTML = content;
+            currentPDFElement = content;
+            document.getElementById('previewModal').classList.add('open');
         }
 
-        function previewCert(projectId) { 
+        function previewCert(projectId) {
             const data = projectsCache.find(p => p.projectId === projectId);
-            if(!data) return notify("Data lost. Please refresh.", "error");
+            if (!data) return notify("Data lost. Please refresh.", "error");
 
-            const certData = { id: data.projectId, name: data.customerName, loc: data.location, date: data.date, gps: data.gps, depth: data.depth, casing_depth: data.casing_depth, casing_type: data.casing_type, yield: data.yield, motor: data.motor, rigType: data.rigType }; 
-            const content = getCertificateHTML(certData); 
-            document.getElementById('previewContent').innerHTML = content; 
-            currentPDFElement = content; 
-            document.getElementById('previewModal').classList.add('open'); 
+            const certData = { id: data.projectId, name: data.customerName, loc: data.location, date: data.date, gps: data.gps, depth: data.depth, casing_depth: data.casing_depth, casing_type: data.casing_type, yield: data.yield, motor: data.motor, rigType: data.rigType };
+            const content = getCertificateHTML(certData);
+            document.getElementById('previewContent').innerHTML = content;
+            currentPDFElement = content;
+            document.getElementById('previewModal').classList.add('open');
         }
 
         // --- SILENT LEAD UTILS ---
