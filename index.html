@@ -1216,7 +1216,15 @@
             const data = projectsCache.find(p => p.projectId === projectId);
             if (!data) return notify("Data lost. Please refresh.", "error");
 
-            const certData = { id: data.projectId, name: data.customerName, loc: data.location, date: data.date, gps: data.gps, depth: data.depth, casing_depth: data.casing_depth, casing_type: data.casing_type, yield: data.yield, motor: data.motor, rigType: data.rigType };
+            // 🔴 ARCHITECT FIX: Pass isAuthorized and signatureBase64 to the PDF generator
+            const certData = { 
+                id: data.projectId, name: data.customerName, loc: data.location, 
+                date: data.date, gps: data.gps, depth: data.depth, 
+                casing_depth: data.casing_depth, casing_type: data.casing_type, 
+                yield: data.yield, motor: data.motor, rigType: data.rigType,
+                isAuthorized: data.isAuthorized, signatureBase64: data.signatureBase64 
+            };
+            
             const content = getCertificateHTML(certData);
             document.getElementById('previewContent').innerHTML = content;
             currentPDFElement = content;
