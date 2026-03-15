@@ -578,61 +578,6 @@
             </div>
         </div>
 
-        <div id="section-maproom" class="content-section hidden max-w-7xl mx-auto h-[85vh]">
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
-                <div class="lg:col-span-3 glass-card flex flex-col relative overflow-hidden">
-                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
-                        <div class="bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded-lg shadow-xl">
-                            <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Zone Type</label>
-                            <select id="drawType"
-                                class="bg-slate-800 text-white text-xs p-1 rounded w-32 outline-none border border-slate-600 mb-2">
-                                <option value="rock">Hard Rock (Red)</option>
-                                <option value="water">High Yield (Green)</option>
-                                <option value="moderate">Moderate (Yellow)</option>
-                                <option value="saline">Saline/Salty (Blue)</option>
-                                <option value="silt">Loose Silt (Orange)</option>
-                            </select>
-                            <button onclick="enableDrawing()" id="btnDraw"
-                                class="w-full bg-white text-slate-900 font-bold text-xs py-2 rounded hover:bg-slate-200 flex items-center justify-center gap-1">
-                                <i class="ri-pencil-line"></i> DRAW SHAPE
-                            </button>
-                            <button onclick="cancelDrawing()" id="btnCancel"
-                                class="hidden w-full bg-red-500 text-white font-bold text-xs py-2 rounded hover:bg-red-600 mt-1">
-                                CANCEL
-                            </button>
-                        </div>
-                    </div>
-                    <div id="adminMap" class="w-full h-full bg-slate-900"></div>
-                    <div id="saveZonePanel"
-                        class="hidden absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-900/95 border border-emerald-500 p-4 rounded-xl shadow-2xl z-20 w-80">
-                        <h4 class="text-white text-sm font-bold mb-2" id="zonePanelTitle">Save New Zone</h4>
-                        <input type="hidden" id="editDocId">
-                        <input type="text" id="newZoneName"
-                            class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs mb-2"
-                            placeholder="Zone Name (e.g. Mangalagiri North)">
-                        <div class="flex gap-2">
-                            <button onclick="saveCurrentZone()"
-                                class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded"
-                                id="btnSaveZone">CONFIRM SAVE</button>
-                            <button onclick="discardCurrentZone()"
-                                class="bg-slate-700 hover:bg-slate-600 text-white px-3 rounded"><i
-                                    class="ri-close-line"></i></button>
-                        </div>
-                    </div>
-                </div>
-                <div class="glass-card p-4 flex flex-col h-full">
-                    <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3">
-                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Saved Zones</h3>
-                        <button onclick="loadAdminZones()" class="text-xs text-blue-400 hover:text-white"><i
-                                class="ri-refresh-line"></i></button>
-                    </div>
-                    <div id="zonesList" class="flex-grow overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                        <div class="text-center text-slate-500 text-xs mt-10">Loading database...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div id="section-dataops" class="content-section hidden max-w-5xl mx-auto">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="glass-card p-6">
@@ -1003,29 +948,23 @@
             });
         }
 
-        // --- GLOBAL KEYBOARD HOTFIX ---
-        document.addEventListener("DOMContentLoaded", () => {
-            // Global Project Search (Hit enter to unfocus keyboard on mobile)
-            const searchInp = document.getElementById('searchInput');
-            if (searchInp) {
-                searchInp.addEventListener("keypress", (e) => {
-                    if (e.key === "Enter") searchInp.blur();
-                });
-            }
-        });
+      
 
+       // 🟢 THE VAULT DOOR: Firestore Security Validation & Signature Caching
+        let adminSignatureBase64 = ""; // Cache the signature
 
-        // 🟢 THE VAULT DOOR: Firestore Security Validation
         auth.onAuthStateChanged(user => {
             const loader = document.getElementById('system-loader');
             const loginModal = document.getElementById('login-overlay');
 
             if (user) {
-                // Support both login types. Firebase returns phone numbers with the +91 prefix.
                 const adminIdentifier = user.email || user.phoneNumber;
 
                 db.collection('admins').doc(adminIdentifier).get().then(doc => {
                     if (doc.exists) {
+                        // 🔴 ARCHITECT FIX: Load signature from DB into memory
+                        adminSignatureBase64 = doc.data().signatureBase64 || ""; 
+                        
                         if (loader) loader.style.display = 'none';
                         if (loginModal) loginModal.classList.remove('open');
                         showSection('leads');
@@ -1327,125 +1266,6 @@
             });
         }
 
-        // --- MAPS & ZONES LOGIC ---
-        let adminMap, drawingManager, currentPoly;
-        let map;
-        let mapPolygons = [];
-
-        const ZONE_CONFIG = {
-            rock: { color: '#ef4444', label: 'Hard Rock' },
-            water: { color: '#10b981', label: 'High Yield' },
-            moderate: { color: '#eab308', label: 'Moderate' },
-            saline: { color: '#3b82f6', label: 'Saline' },
-            silt: { color: '#f97316', label: 'Loose Silt' }
-        };
-
-        function initAdminMap() {
-            if (adminMap) { loadAdminZones(); return; }
-            if (typeof google === 'undefined') { notify("Maps API Loading...", "info"); return; }
-
-            const startLoc = { lat: 16.4410, lng: 80.5520 };
-            adminMap = new google.maps.Map(document.getElementById('adminMap'), {
-                center: startLoc, zoom: 13, mapTypeId: 'hybrid', disableDefaultUI: true, zoomControl: true
-            });
-
-            drawingManager = new google.maps.drawing.DrawingManager({
-                drawingMode: null, drawingControl: false,
-                polygonOptions: { strokeWeight: 2, fillOpacity: 0.35, editable: true, draggable: false }
-            });
-            drawingManager.setMap(adminMap);
-
-            google.maps.event.addListener(drawingManager, 'polygoncomplete', function (poly) {
-                if (currentPoly) discardCurrentZone();
-                currentPoly = poly;
-                enableEditorUI("Save New Zone", "CONFIRM SAVE");
-                drawingManager.setDrawingMode(null);
-                toggleDrawButtons(false);
-            });
-            loadAdminZones();
-        }
-
-        function enableDrawing() {
-            discardCurrentZone();
-            const type = document.getElementById('drawType').value;
-            const color = ZONE_CONFIG[type].color;
-            drawingManager.setOptions({
-                drawingMode: google.maps.drawing.OverlayType.POLYGON,
-                polygonOptions: { fillColor: color, strokeColor: color, fillOpacity: 0.35, strokeWeight: 2, editable: true }
-            });
-            toggleDrawButtons(true);
-            notify(`Draw Mode: ${ZONE_CONFIG[type].label}`);
-        }
-
-        function cancelDrawing() { drawingManager.setDrawingMode(null); discardCurrentZone(); toggleDrawButtons(false); }
-        function discardCurrentZone() {
-            document.getElementById('saveZonePanel').classList.add('hidden');
-            document.getElementById('editDocId').value = ""; document.getElementById('newZoneName').value = "";
-            if (currentPoly) {
-                if (!currentPoly.docId) { currentPoly.setMap(null); }
-                else { currentPoly.setEditable(false); currentPoly.setOptions({ strokeOpacity: 0.8, fillOpacity: 0.2 }); }
-                currentPoly = null;
-            }
-        }
-        function initEditZone(docId) {
-            discardCurrentZone();
-            const targetPoly = mapPolygons.find(p => p.docId === docId);
-            if (!targetPoly) return notify("Error: Zone data not synced.", "error");
-            targetPoly.setEditable(true); targetPoly.setOptions({ strokeOpacity: 1.0, fillOpacity: 0.5 });
-            currentPoly = targetPoly;
-            const data = targetPoly.zoneData;
-            document.getElementById('newZoneName').value = data.name; document.getElementById('drawType').value = data.typeKey; document.getElementById('editDocId').value = docId;
-            enableEditorUI("Edit Existing Zone", "UPDATE SHAPE");
-        }
-        function saveCurrentZone() {
-            const nameRaw = document.getElementById('newZoneName').value; const type = document.getElementById('drawType').value; const editId = document.getElementById('editDocId').value;
-            if (!nameRaw) return notify("Enter Name", "error"); if (!currentPoly) return notify("No shape active", "error");
-            const path = currentPoly.getPath(); let coords = [];
-            for (let i = 0; i < path.getLength(); i++) { const xy = path.getAt(i); coords.push({ lat: xy.lat(), lng: xy.lng() }); }
-            const zoneData = { name: nameRaw, typeKey: type, typeName: ZONE_CONFIG[type].label, color: ZONE_CONFIG[type].color, coords: coords, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
-            const btn = document.getElementById('btnSaveZone'); const oldText = btn.innerText; btn.innerText = "SAVING...";
-            if (editId) { db.collection('geo_zones').doc(editId).update(zoneData).then(() => { notify("Zone Updated"); finalizeSave(btn, oldText); }); }
-            else { const docId = nameRaw.toLowerCase().replace(/[^a-z0-9]/g, '_'); db.collection('geo_zones').doc(docId).set(zoneData).then(() => { notify("New Zone Created"); finalizeSave(btn, oldText); }); }
-        }
-        function finalizeSave(btn, oldText) { btn.innerText = oldText; if (currentPoly) currentPoly = null; document.getElementById('saveZonePanel').classList.add('hidden'); document.getElementById('editDocId').value = ""; document.getElementById('newZoneName').value = ""; loadAdminZones(); }
-        function deleteZone(collectionName, docId) {
-            if (!confirm(`PERMANENT DELETE from ${collectionName}?`)) return;
-            db.collection(collectionName).doc(docId).delete().then(() => {
-                notify("Object Deleted"); loadAdminZones();
-            }).catch(e => notify("Delete Failed", "error"));
-        }
-        function loadAdminZones() {
-            const listEl = document.getElementById('zonesList');
-            if (mapPolygons) mapPolygons.forEach(p => p.setMap(null)); mapPolygons = [];
-            listEl.innerHTML = '<div class="text-center text-slate-500 text-xs mt-4 animate-pulse">Scanning layers...</div>';
-            const layers = [{ id: 'geo_zones', label: 'Manual' }, { id: 'risk_map', label: 'Risk Zone' }, { id: 'layer_lithologs', label: 'Station' }];
-            const promises = layers.map(l => db.collection(l.id).orderBy('timestamp', 'desc').limit(50).get().then(snap => ({ id: l.id, label: l.label, docs: snap.docs })));
-            Promise.all(promises).then(results => {
-                listEl.innerHTML = ""; let count = 0;
-                results.forEach(res => {
-                    res.docs.forEach(doc => {
-                        const data = doc.data(); const docId = doc.id; const collection = res.id; count++;
-                        let mapObj = null;
-                        if (data.lat && data.lng) {
-                            mapObj = new google.maps.Circle({ strokeColor: data.color || '#06b6d4', fillColor: data.color || '#06b6d4', fillOpacity: 0.6, map: adminMap, center: { lat: data.lat, lng: data.lng }, radius: 150, clickable: true });
-                        } else if (data.coords) {
-                            mapObj = new google.maps.Polygon({ paths: data.coords, strokeColor: data.color, fillColor: data.color, fillOpacity: 0.2, map: adminMap, clickable: true });
-                        }
-                        if (mapObj) {
-                            mapObj.docId = docId; mapObj.zoneData = data;
-                            mapObj.addListener('click', () => { notify(data.name); if (mapObj.getCenter) adminMap.panTo(mapObj.getCenter()); });
-                            mapPolygons.push(mapObj);
-                            listEl.innerHTML += `<div class="bg-slate-800 p-3 mb-2 rounded border border-slate-700 flex justify-between items-center group hover:border-blue-500 cursor-pointer"><div><div class="text-xs font-bold text-white w-32 truncate">${data.name}</div><div class="text-[9px] text-slate-400">${res.label}</div></div><div class="flex gap-1">${collection === 'geo_zones' ? `<button onclick="initEditZone('${docId}')" class="text-slate-500 hover:text-blue-400 p-1"><i class="ri-edit-line"></i></button>` : ''}<button onclick="deleteZone('${collection}', '${docId}')" class="text-slate-500 hover:text-red-500 p-1"><i class="ri-delete-bin-line"></i></button></div></div>`;
-                        }
-                    });
-                });
-                if (count === 0) listEl.innerHTML = '<div class="text-center text-slate-600 text-xs mt-10">No Zones Found</div>';
-            });
-        }
-        function jumpToCoords() { const lat = parseFloat(document.getElementById('manualLat').value); const lng = parseFloat(document.getElementById('manualLng').value); if (!isNaN(lat) && !isNaN(lng)) { adminMap.setCenter({ lat, lng }); adminMap.setZoom(16); } }
-        function toggleDrawButtons(isDrawing) { document.getElementById('btnDraw').classList.toggle('hidden', isDrawing); document.getElementById('btnCancel').classList.toggle('hidden', !isDrawing); }
-        function enableEditorUI(title, btnText) { document.getElementById('saveZonePanel').classList.remove('hidden'); document.getElementById('zonePanelTitle').innerText = title; document.getElementById('btnSaveZone').innerText = btnText; }
-
 
         // --- CORE UTILS ---
         function loadAnalytics() {
@@ -1473,10 +1293,40 @@
             document.getElementById('projectForm').scrollIntoView({ behavior: "smooth" });
         }
         function saveProject(e) {
-            e.preventDefault(); const id = document.getElementById('p_id').value;
-            const data = { projectId: id, mobile: "+91" + document.getElementById('p_mobile').value, customerName: document.getElementById('p_name').value, location: document.getElementById('p_loc').value, gps: document.getElementById('p_gps').value, depth: document.getElementById('p_depth').value, yield: document.getElementById('p_yield').value, casing_depth: document.getElementById('p_casing').value, casing_type: document.getElementById('p_casingType').value, rigType: document.getElementById('p_rig').value, motor: document.getElementById('p_motor').value, date: document.getElementById('p_date').value, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+            e.preventDefault(); 
+            const id = document.getElementById('p_id').value;
+            const isAuth = document.getElementById('p_auth').checked;
+
+            const data = { 
+                projectId: id, 
+                mobile: "+91" + document.getElementById('p_mobile').value, 
+                customerName: document.getElementById('p_name').value, 
+                location: document.getElementById('p_loc').value, 
+                gps: document.getElementById('p_gps').value, 
+                depth: document.getElementById('p_depth').value, 
+                yield: document.getElementById('p_yield').value, 
+                casing_depth: document.getElementById('p_casing').value, 
+                casing_type: document.getElementById('p_casingType').value, 
+                rigType: document.getElementById('p_rig').value, 
+                motor: document.getElementById('p_motor').value, 
+                date: document.getElementById('p_date').value, 
+                isAuthorized: isAuth, 
+                signatureBase64: isAuth ? adminSignatureBase64 : "", // 🔴 Inject Admin Signature here
+                timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+            };
+
             const docRef = db.collection('projects').doc(id);
-            docRef.get().then(doc => { if (doc.exists && !isEditing) { notify("ERROR: ID Exists.", "error"); resetForm(); } else { docRef.set(data, { merge: true }).then(() => { notify(isEditing ? "RECORD UPDATED" : "CERTIFICATE ISSUED"); resetForm(); showSection('projects'); }); } });
+            docRef.get().then(doc => { 
+                if (doc.exists && !isEditing) { 
+                    notify("ERROR: ID Exists.", "error"); resetForm(); 
+                } else { 
+                    docRef.set(data, { merge: true }).then(() => { 
+                        notify(isEditing ? "RECORD UPDATED" : "CERTIFICATE ISSUED"); 
+                        resetForm(); 
+                        showSection('projects'); 
+                    }); 
+                } 
+            });
         }
 
 
@@ -1507,28 +1357,49 @@
         }
         function updateLeadStatus(docId, status) { db.collection('leads').doc(docId).update({ status: status }); }
         function saveNote(docId) { db.collection('leads').doc(docId).update({ adminNotes: document.getElementById('adminNotes').value }).then(() => notify("Note Saved")); }
-        function initMapTools() { const input = document.getElementById('p_loc'); if (input) { const ac = new google.maps.places.Autocomplete(input); ac.addListener('place_changed', () => { const p = ac.getPlace(); if (p.geometry && map) map.setCenter(p.geometry.location); }); } }
-        function openMapPicker() { if (typeof google === 'undefined') { notify("System Initializing...", "error"); return; } document.getElementById('mapModal').classList.add('open'); if (!map) { map = new google.maps.Map(document.getElementById('mapContainer'), { center: { lat: 16.44, lng: 80.55 }, zoom: 16, disableDefaultUI: true, styles: [{ elementType: "geometry", stylers: [{ color: "#242f3e" }] }, { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] }, { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] }, { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] }, { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }] }); } setTimeout(() => google.maps.event.trigger(map, 'resize'), 100); }
-        function confirmLocation() { const c = map.getCenter(); document.getElementById('p_gps').value = `${c.lat().toFixed(6)}, ${c.lng().toFixed(6)}`; document.getElementById('mapModal').classList.remove('open'); }
-
-        // --- DATA OPS FUNCTIONS (PREVENTS CRASHES ON CLICK) ---
-        function processJsonFile() {
-            const fileInput = document.getElementById('jsonUpload');
-            if (!fileInput || !fileInput.files.length) return notify("Please select a JSON file first.", "error");
-            notify("Data Ingestion Module currently in Development Phase.", "info");
+        
+		// --- 🟢 LEAFLET MAP REPLACEMENT ---
+        let pickerMap, pickerMarker;
+        
+        function openMapPicker() { 
+            document.getElementById('mapModal').classList.add('open'); 
+            if(!pickerMap) { 
+                // Initialize Leaflet Map (Open Source, No Labels)
+                pickerMap = L.map('mapContainer', { zoomControl: false, attributionControl: false }).setView([16.4410, 80.5520], 15); 
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(pickerMap); 
+                
+                // Add a target crosshair marker in the center
+                const crosshairIcon = L.divIcon({ className: 'custom-crosshair', html: '<div style="color: #3b82f6; font-size: 24px; text-shadow: 0 0 5px black;">⌖</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+                pickerMarker = L.marker(pickerMap.getCenter(), { icon: crosshairIcon }).addTo(pickerMap);
+                
+                // Update marker position on drag
+                pickerMap.on('move', () => { pickerMarker.setLatLng(pickerMap.getCenter()); });
+            } 
+            setTimeout(() => pickerMap.invalidateSize(), 100); 
+        }
+        
+        function confirmLocation() { 
+            const center = pickerMap.getCenter(); 
+            document.getElementById('p_gps').value = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`; 
+            document.getElementById('mapModal').classList.remove('open'); 
         }
 
-        function addRiskRegion() {
+        // --- DATA OPS FUNCTIONS ---
+        function processJsonFile() { notify("Data Ingestion Module currently in Development Phase.", "info"); }
+        function addRiskRegion() { 
             const region = document.getElementById('riskRegion').value;
             const level = document.getElementById('riskLevel').value;
             if (!region) return notify("Enter a region name.", "error");
-            notify(`Risk Mapping Captured: ${region} -> ${level}`, "info");
+            notify(`Risk Mapping Captured: ${region} -> ${level}`, "info"); 
         }
 
-        // 🟢 FIX: Ensure Google Maps Key is Defined
+        // 🟢 GOOGLE MAPS (ONLY FOR ADDRESS AUTOCOMPLETE)
+        function initMapTools() { const input = document.getElementById('p_loc'); if (input) { const ac = new google.maps.places.Autocomplete(input); } }
+        
         const mapKey = (typeof CONTACT_INFO !== 'undefined' && CONTACT_INFO.google_maps_key) ? CONTACT_INFO.google_maps_key : 'YOUR_API_KEY_HERE';
         const s = document.createElement('script');
-        s.src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}&libraries=places,drawing,geometry&callback=initMapTools`;
+        // Reduced libraries to 'places' only to save bandwidth
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}&libraries=places&callback=initMapTools`;
         s.async = true;
         s.defer = true;
         document.body.appendChild(s);
